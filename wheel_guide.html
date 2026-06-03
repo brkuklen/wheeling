@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Wheel Strategy — A Mechanical Guide</title>
+<style>
+  :root{
+    --bg:#0e1117; --panel:#161b22; --panel2:#1c232c; --border:#30363d;
+    --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950;
+    --red:#f85149; --yellow:#d29922; --purple:#bc8cff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.6;font-size:16px}
+  a{color:var(--accent)}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
+  header{padding:48px 24px;text-align:center;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#1c2230 0%,var(--bg) 100%)}
+  header h1{margin:0 0 8px;font-size:42px;letter-spacing:-0.5px}
+  header p{margin:0;color:var(--muted);font-size:18px}
+  nav{position:sticky;top:0;background:rgba(14,17,23,0.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);z-index:10;padding:12px 24px;
+    display:flex;gap:16px;flex-wrap:wrap;justify-content:center;font-size:14px}
+  nav a{color:var(--muted);text-decoration:none}
+  nav a:hover{color:var(--accent)}
+  section{margin:48px 0;scroll-margin-top:60px}
+  h2{font-size:30px;border-bottom:2px solid var(--border);padding-bottom:8px;
+    color:var(--accent)}
+  h3{font-size:22px;color:var(--purple);margin-top:32px}
+  h4{font-size:17px;color:var(--text);margin-bottom:6px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:20px;margin:16px 0}
+  .card.example{border-left:4px solid var(--accent)}
+  .card.warn{border-left:4px solid var(--yellow);background:#1f1c10}
+  .card.good{border-left:4px solid var(--green)}
+  .card.bad{border-left:4px solid var(--red)}
+  code{background:var(--panel2);padding:2px 6px;border-radius:4px;
+    font-family:"SF Mono",Consolas,monospace;font-size:0.92em;color:var(--purple)}
+  pre{background:var(--panel2);padding:14px;border-radius:8px;overflow-x:auto;
+    border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  th{background:var(--panel2);color:var(--accent);font-weight:600}
+  tr:hover td{background:#1a2030}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:14px;margin:16px 0}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    padding:16px;text-align:center}
+  .stat .v{font-size:28px;font-weight:700;color:var(--green)}
+  .stat .l{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:0.5px}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+    margin:24px 0;padding:20px;background:var(--panel);border-radius:10px;
+    border:1px solid var(--border)}
+  .node{background:var(--panel2);border:2px solid var(--accent);border-radius:8px;
+    padding:12px 18px;text-align:center;min-width:140px;font-weight:600;cursor:pointer;
+    transition:transform 0.15s,box-shadow 0.15s}
+  .node:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(88,166,255,0.3)}
+  .node.csp{border-color:var(--accent)}
+  .node.cc{border-color:var(--purple)}
+  .node.assign{border-color:var(--yellow)}
+  .node.exit{border-color:var(--green)}
+  .arrow{color:var(--muted);font-size:22px;font-weight:700}
+  .calc{background:var(--panel2);border-left:3px solid var(--accent);padding:12px 16px;
+    margin:10px 0;font-family:"SF Mono",Consolas,monospace;font-size:14px;border-radius:4px}
+  .pill{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;
+    font-weight:600;letter-spacing:0.3px}
+  .pill.csp{background:#0d3057;color:#79c0ff}
+  .pill.cc{background:#3c2660;color:#d2a8ff}
+  .pill.roll{background:#3d2c08;color:#e3b341}
+  .pill.assign{background:#4a2828;color:#ff7b72}
+  .pill.exp{background:#0d3a1f;color:#7ee787}
+  details{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    padding:14px 18px;margin:10px 0}
+  summary{cursor:pointer;font-weight:600;color:var(--accent)}
+  .interactive{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:20px;margin:16px 0}
+  .interactive label{display:block;margin:8px 0 4px;color:var(--muted);font-size:13px}
+  .interactive input{background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:8px 12px;border-radius:6px;width:120px;font-size:15px;font-family:inherit}
+  .interactive input:focus{outline:none;border-color:var(--accent)}
+  .out{margin-top:14px;padding:14px;background:#0d3057;border-radius:8px;
+    border:1px solid var(--accent)}
+  .out .big{font-size:24px;font-weight:700;color:var(--green)}
+  footer{padding:32px 24px;text-align:center;color:var(--muted);font-size:13px;
+    border-top:1px solid var(--border);margin-top:48px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>The Wheel Strategy</h1>
+  <p>A mechanical guide to selling premium for steady cash flow</p>
+</header>
+
+<nav>
+  <a href="#overview">Overview</a>
+  <a href="#cycle">The Cycle</a>
+  <a href="#csp">1 · Sell a CSP</a>
+  <a href="#outcomes">2 · Outcomes</a>
+  <a href="#roll">3 · Rolling</a>
+  <a href="#assign">4 · Assignment</a>
+  <a href="#cc">5 · Sell a CC</a>
+  <a href="#math">The Math</a>
+  <a href="#calc">Calculator</a>
+  <a href="#risk">Risk</a>
+  <a href="#glossary">Glossary</a>
+</nav>
+
+<div class="wrap">
+
+<!-- ============================== OVERVIEW ============================== -->
+<section id="overview">
+<h2>What is the Wheel?</h2>
+<p>
+  The wheel is a repeatable two-stage options strategy that generates income from stocks you
+  are willing to own. You collect premium by <strong>selling options</strong> — first puts,
+  then (if assigned) calls — and recycle the cycle indefinitely.
+</p>
+
+<div class="grid">
+  <div class="stat"><div class="v">2</div><div class="l">Option types used</div></div>
+  <div class="stat"><div class="v">3</div><div class="l">Possible outcomes per trade</div></div>
+  <div class="stat"><div class="v">∞</div><div class="l">Times the cycle repeats</div></div>
+</div>
+
+<div class="card">
+  <h4>The core idea in one sentence</h4>
+  <p style="margin:0">
+    Sell a <span class="pill csp">Cash-Secured Put</span> on a stock you'd buy anyway. If it
+    expires worthless, keep the premium and sell another. If you get assigned the shares,
+    sell <span class="pill cc">Covered Calls</span> against them until they're called away.
+    Then start over.
+  </p>
+</div>
+</section>
+
+<!-- ============================== CYCLE ============================== -->
+<section id="cycle">
+<h2>The Wheel Cycle</h2>
+<p>The whole strategy fits in this loop. Every position is somewhere on this diagram.</p>
+
+<div class="flow">
+  <div class="node csp">Sell CSP</div>
+  <div class="arrow">→</div>
+  <div class="node">Wait</div>
+  <div class="arrow">→</div>
+  <div class="node exit">Expires worthless<br/><small>keep premium</small></div>
+  <div class="arrow">↺</div>
+</div>
+<div class="flow">
+  <div class="node csp">Sell CSP</div>
+  <div class="arrow">→</div>
+  <div class="node assign">ITM at expiry</div>
+  <div class="arrow">→</div>
+  <div class="node">Roll or Assign</div>
+  <div class="arrow">→</div>
+  <div class="node assign">Own 100 shares</div>
+</div>
+<div class="flow">
+  <div class="node assign">Own 100 shares</div>
+  <div class="arrow">→</div>
+  <div class="node cc">Sell CC</div>
+  <div class="arrow">→</div>
+  <div class="node exit">Called away<br/><small>shares + premium</small></div>
+  <div class="arrow">↺</div>
+  <div class="node csp">Back to CSP</div>
+</div>
+</section>
+
+<!-- ============================== STEP 1: CSP ============================== -->
+<section id="csp">
+<h2>Step 1 — Sell a Cash-Secured Put (CSP)</h2>
+
+<p>
+  A <strong>put option</strong> gives the buyer the right to sell 100 shares at the strike
+  price. When you <em>sell</em> a put, you collect premium in exchange for the obligation to
+  buy 100 shares at the strike if the buyer exercises.
+</p>
+
+<p><strong>"Cash-secured"</strong> means you set aside enough cash to actually buy the shares
+  if assigned. One contract = 100 shares = <code>strike × 100</code> in collateral.</p>
+
+<div class="card example">
+  <h4>Worked example — <code>TSLA-002</code> from your tracker</h4>
+  <table>
+    <tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
+    <tr><td>Stock price</td><td>$321.20</td><td>TSLA on 2025-07-29</td></tr>
+    <tr><td>Strike</td><td>$312.50</td><td>Sold a put ~2.7% OTM (below spot)</td></tr>
+    <tr><td>Premium</td><td>$3.25 / share</td><td>Quoted per share</td></tr>
+    <tr><td>Blocks</td><td>1</td><td>1 contract = 100 shares</td></tr>
+    <tr><td>Cash collateral</td><td>$31,250</td><td><code>312.50 × 100</code></td></tr>
+    <tr><td>Total premium received</td><td><strong style="color:var(--green)">$325</strong></td><td><code>3.25 × 100 × 1</code></td></tr>
+    <tr><td>ROI on collateral</td><td><strong style="color:var(--green)">1.04%</strong></td><td><code>325 ÷ 31,250</code> — for a ~1 week trade</td></tr>
+  </table>
+</div>
+
+<h3>How to pick the strike</h3>
+<p>Common rules of thumb (yours appear to favor 5-10 delta or 1-3% OTM, weekly DTE):</p>
+<ul>
+  <li><strong>Delta as probability proxy.</strong> A 0.20 delta put has ~20% chance of finishing ITM.</li>
+  <li><strong>% OTM.</strong> Pick a strike you'd be genuinely happy owning at.</li>
+  <li><strong>DTE (days to expiration).</strong> Shorter = faster theta decay, more frequent trades, more touches.</li>
+  <li><strong>IV rank.</strong> Higher IV = fatter premium for the same delta.</li>
+</ul>
+</section>
+
+<!-- ============================== STEP 2: OUTCOMES ============================== -->
+<section id="outcomes">
+<h2>Step 2 — The Three Outcomes</h2>
+<p>By expiration, every short put resolves into exactly one of three states:</p>
+
+<div class="card good">
+  <h4><span class="pill exp">EXPIRED</span> Stock stays above strike</h4>
+  <p>The put expires worthless. You keep 100% of the premium and your collateral is released.
+    <strong>This is the goal.</strong> Sell another one.</p>
+  <p><em>Example: <code>NVDA-001</code> — sold $172.50 put for $0.61, NVDA stayed above, kept $61.</em></p>
+</div>
+
+<div class="card warn">
+  <h4><span class="pill roll">ROLLED</span> Stock drops near or below strike — you defend</h4>
+  <p>Instead of taking assignment, you <strong>buy back</strong> the current put and
+    <strong>sell a new one</strong> further out in time (and often lower in strike) for a
+    net credit. This buys you more time and lowers your cost basis if eventually assigned.</p>
+  <p><em>See <a href="#roll">Rolling</a> below for the full mechanic.</em></p>
+</div>
+
+<div class="card bad">
+  <h4><span class="pill assign">ASSIGNED</span> Stock finishes below strike — you buy the shares</h4>
+  <p>You're obligated to buy 100 shares at the strike, regardless of the current market
+    price. Your effective cost basis is <code>strike − premium received</code>. Now you own
+    the stock and move to the <a href="#cc">covered call</a> phase.</p>
+  <p><em>Example: <code>AMD-001</code> — sold $172.50 put for $1.12, AMD dropped, assigned at
+    effective basis of $171.38/share.</em></p>
+</div>
+</section>
+
+<!-- ============================== STEP 3: ROLLING ============================== -->
+<section id="roll">
+<h2>Step 3 — Rolling a Position</h2>
+
+<p>
+  A <strong>roll</strong> is a single combined trade: close the existing short option and
+  open a new one. The new option is usually <strong>further dated</strong> and may be at a
+  <strong>different strike</strong>. The goal is to collect a net credit (or break even)
+  while postponing assignment.
+</p>
+
+<div class="card example">
+  <h4>Worked example — <code>TSLA-001</code> chain from your tracker</h4>
+  <table>
+    <tr><th>Leg</th><th>Event</th><th>Strike</th><th>Premium</th><th>Note</th></tr>
+    <tr><td>1</td><td><span class="pill csp">Open CSP</span></td><td>$310</td><td>+$4.00</td><td>Sold for $400 total. Stock dropped.</td></tr>
+    <tr><td>2</td><td><span class="pill roll">Roll</span></td><td>(rolled)</td><td>+$0.70 net</td><td>Net credit of $70 on the roll.</td></tr>
+    <tr><td>—</td><td><span class="pill assign">Assigned</span></td><td>—</td><td>—</td><td>Eventually took shares.</td></tr>
+  </table>
+  <p style="margin-bottom:0"><strong>Total premium across the chain: $470.</strong> That
+  premium reduces your effective cost basis on the assigned shares.</p>
+</div>
+
+<h3>When to roll vs accept assignment</h3>
+<ul>
+  <li><strong>Roll</strong> if you can get a meaningful net credit (typically &gt; $0.10/share)
+    and you don't <em>want</em> the shares yet (capital tied up, better opportunities elsewhere).</li>
+  <li><strong>Accept assignment</strong> if rolling gives you a tiny or negative credit, or if
+    you're happy to own at this basis and start the CC phase.</li>
+</ul>
+</section>
+
+<!-- ============================== STEP 4: ASSIGN ============================== -->
+<section id="assign">
+<h2>Step 4 — Assignment: Now You Own the Stock</h2>
+
+<p>When assigned, your cash collateral is converted into 100 shares per contract at the strike
+  price. Your <strong>effective cost basis</strong> is:</p>
+
+<div class="calc">
+  cost_basis = strike − (total_premium_collected_across_chain / 100)
+</div>
+
+<div class="card example">
+  <h4>Cost basis example — <code>AMD-001</code></h4>
+  <div class="calc">
+    strike = $172.50<br/>
+    premium = $1.12/share (single leg, no rolls)<br/>
+    <strong>effective basis = 172.50 − 1.12 = $171.38/share</strong>
+  </div>
+  <p>You paid $17,250 cash for 100 AMD shares, but the $112 premium effectively reduces
+    your basis to $17,138. Any CC premium you collect from here lowers it further.</p>
+</div>
+
+<div class="card warn">
+  <h4>The honest truth about assignment</h4>
+  <p>If you got assigned, the stock has dropped <em>through</em> your strike. You're sitting on
+    an unrealized loss on day one. The wheel works because:</p>
+  <ol>
+    <li>You only sell CSPs on stocks you actually want to own.</li>
+    <li>Premium collected (CSP + rolls + future CCs) keeps lowering your basis.</li>
+    <li>You're not forced to sell at a loss — you sell CCs and wait.</li>
+  </ol>
+</div>
+</section>
+
+<!-- ============================== STEP 5: CC ============================== -->
+<section id="cc">
+<h2>Step 5 — Sell a Covered Call (CC)</h2>
+
+<p>Now that you own 100 shares, you sell a call option against them. A call gives the
+  buyer the right to <em>buy</em> your shares at the strike. You collect premium in exchange
+  for capping your upside at the strike.</p>
+
+<p><strong>"Covered"</strong> means the shares back the obligation — no extra collateral needed.</p>
+
+<div class="card example">
+  <h4>Worked example — <code>META-001</code> from your tracker</h4>
+  <table>
+    <tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
+    <tr><td>Stock price</td><td>$773.30</td><td>META after earnings</td></tr>
+    <tr><td>Strike</td><td>$795.00</td><td>Call sold ~2.8% OTM (above spot)</td></tr>
+    <tr><td>Premium</td><td>$9.85 / share</td><td>Big premium thanks to post-earnings IV</td></tr>
+    <tr><td>Total premium</td><td><strong style="color:var(--green)">$985</strong></td><td><code>9.85 × 100</code></td></tr>
+    <tr><td>ROI vs stock value</td><td><strong style="color:var(--green)">1.24%</strong></td><td><code>985 ÷ 77,330</code> — for the week</td></tr>
+    <tr><td>Status</td><td><span class="pill exp">EXPIRED</span></td><td>META stayed below $795, kept all $985</td></tr>
+  </table>
+</div>
+
+<h3>Picking the call strike</h3>
+<ul>
+  <li><strong>Above your cost basis.</strong> Critical rule — if called away, you book a profit on shares + premium.</li>
+  <li><strong>OTM by your comfort level.</strong> Further OTM = less premium, more upside room.</li>
+  <li><strong>Avoid capping a runner.</strong> If you'd hate selling at this strike, don't sell the call.</li>
+</ul>
+
+<h3>CC outcomes (mirror the CSP outcomes)</h3>
+<ul>
+  <li><span class="pill exp">EXPIRED</span> Stock stays below strike — keep premium, sell another CC.</li>
+  <li><span class="pill roll">ROLLED</span> Stock rallies above strike — roll up and out for a credit if you want to keep the shares.</li>
+  <li><span class="pill assign">CALLED AWAY</span> Stock above strike at expiry — shares sold at strike. Now back to <a href="#csp">selling CSPs</a>.</li>
+</ul>
+</section>
+
+<!-- ============================== MATH ============================== -->
+<section id="math">
+<h2>The Math That Matters</h2>
+
+<h3>Per-trade ROI</h3>
+<div class="calc">
+  ROI = premium_received / collateral_required
+</div>
+<p>For a CSP: collateral is <code>strike × 100</code>. For a CC: collateral is the share value
+  (or your cost basis, depending on how you account for it).</p>
+
+<h3>Annualized return</h3>
+<div class="calc">
+  annualized = (1 + ROI) ^ (365 / DTE) − 1
+</div>
+<p>A 1% weekly return compounds to ~67% annualized — but only if you keep redeploying capital
+  and avoid catastrophic assignments.</p>
+
+<h3>Chain P&amp;L (across rolls)</h3>
+<div class="calc">
+  chain_pnl = Σ premiums_collected − Σ debits_paid_to_close ± realized_stock_pnl
+</div>
+<p>Your tracker organizes by <code>Chain ID</code> for exactly this reason — every roll and
+  the eventual stock exit belong to the same chain.</p>
+
+<h3>Win rate vs. assignment rate (from your Dashboard)</h3>
+<div class="grid">
+  <div class="stat"><div class="v">87%</div><div class="l">Win rate (trades closed for profit)</div></div>
+  <div class="stat"><div class="v">13%</div><div class="l">Assignment rate</div></div>
+  <div class="stat"><div class="v">0.34</div><div class="l">Avg rolls per chain</div></div>
+</div>
+<p style="color:var(--muted);font-size:14px">A high win rate is expected — most short premium
+  trades win small. The danger is rare-but-large assignment losses on a stock that drops hard.
+  Position sizing and stock selection are what keep the math working long-term.</p>
+</section>
+
+<!-- ============================== CALCULATOR ============================== -->
+<section id="calc">
+<h2>Interactive Calculator</h2>
+<p>Enter a trade to see the mechanics in real time:</p>
+
+<div class="interactive">
+  <div style="display:flex;flex-wrap:wrap;gap:20px">
+    <div><label>Stock price ($)</label><input id="spot" type="number" value="180" step="0.01" /></div>
+    <div><label>Strike ($)</label><input id="strike" type="number" value="175" step="0.5" /></div>
+    <div><label>Premium per share ($)</label><input id="prem" type="number" value="1.50" step="0.01" /></div>
+    <div><label>Contracts (blocks)</label><input id="blocks" type="number" value="1" step="1" min="1" /></div>
+    <div><label>Days to expiration</label><input id="dte" type="number" value="7" step="1" min="1" /></div>
+  </div>
+  <div class="out" id="out"></div>
+</div>
+
+<script>
+function fmt(n){return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+function pct(n){return (n*100).toFixed(2)+"%"}
+function recalc(){
+  const S = +document.getElementById('spot').value;
+  const K = +document.getElementById('strike').value;
+  const P = +document.getElementById('prem').value;
+  const B = +document.getElementById('blocks').value;
+  const D = +document.getElementById('dte').value;
+  const collateral = K * 100 * B;
+  const totalPrem = P * 100 * B;
+  const roi = totalPrem / collateral;
+  const annualized = Math.pow(1 + roi, 365 / D) - 1;
+  const basis = K - P;
+  const otmPct = (S - K) / S;
+  document.getElementById('out').innerHTML = `
+    <div>Cash collateral required: <span class="big">$${fmt(collateral)}</span></div>
+    <div>Total premium collected: <span class="big">$${fmt(totalPrem)}</span></div>
+    <div>Strike is <strong>${pct(otmPct)}</strong> OTM (below spot)</div>
+    <div>ROI for the period: <strong>${pct(roi)}</strong></div>
+    <div>Annualized (if repeatable): <strong>${pct(annualized)}</strong></div>
+    <div>If assigned, effective cost basis: <strong>$${fmt(basis)}</strong>/share</div>
+  `;
+}
+['spot','strike','prem','blocks','dte'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',recalc);
+});
+recalc();
+</script>
+</section>
+
+<!-- ============================== RISK ============================== -->
+<section id="risk">
+<h2>What Can Go Wrong</h2>
+
+<div class="card bad">
+  <h4>Gap-down risk</h4>
+  <p>If a stock gaps down 20% on earnings or news, your put is deep ITM and you eat the full
+    loss minus premium. Premium income from a year can vanish in one bad assignment.
+    <strong>Mitigation:</strong> avoid earnings weeks unless you've sized for it, diversify
+    across uncorrelated names, size each chain to a small fraction of total capital.</p>
+</div>
+
+<div class="card bad">
+  <h4>The "stuck bag holder" problem</h4>
+  <p>After assignment, if the stock keeps dropping, every CC strike above your basis pays
+    almost nothing. You're stuck holding a losing position selling tiny premiums.
+    <strong>Mitigation:</strong> only wheel stocks you'd hold long-term anyway; consider
+    selling CCs below basis if you accept the realized loss.</p>
+</div>
+
+<div class="card bad">
+  <h4>Capped upside on rallies</h4>
+  <p>If you finally sell a CC and the stock rips 30%, you sell at the strike and miss the
+    rally. The wheel is an income strategy, not a growth strategy.</p>
+</div>
+
+<div class="card warn">
+  <h4>Tax drag (US accounts)</h4>
+  <p>Short options closed in &lt; 1 year are short-term capital gains. High turnover = high
+    ordinary-income tax. Consider running the wheel in tax-advantaged accounts when possible.</p>
+</div>
+</section>
+
+<!-- ============================== GLOSSARY ============================== -->
+<section id="glossary">
+<h2>Glossary</h2>
+
+<details><summary>CSP — Cash-Secured Put</summary>
+<p>Short put backed by cash equal to <code>strike × 100</code>. Income trade; obligates you
+  to buy 100 shares at the strike if assigned.</p></details>
+
+<details><summary>CC — Covered Call</summary>
+<p>Short call backed by 100 shares you already own. Income trade; obligates you to sell 100
+  shares at the strike if called away.</p></details>
+
+<details><summary>PCS — Put Credit Spread</summary>
+<p>Defined-risk variant of the CSP: sell a put, buy a further-OTM put for protection. Less
+  premium but capped downside. Used in your <code>wheel_advisor</code> app.</p></details>
+
+<details><summary>Strike</summary>
+<p>The agreed-upon price at which the option can be exercised.</p></details>
+
+<details><summary>Premium</summary>
+<p>The cash the option buyer pays the seller, quoted per share. Multiply by 100 for the
+  per-contract dollar amount.</p></details>
+
+<details><summary>DTE — Days to Expiration</summary>
+<p>How many calendar days remain until the option expires. Most wheel trades use 7-45 DTE.</p></details>
+
+<details><summary>Delta</summary>
+<p>How much the option price moves per $1 move in the stock. Also a rough proxy for
+  probability of finishing ITM.</p></details>
+
+<details><summary>IV — Implied Volatility</summary>
+<p>The market's expected annualized volatility priced into the option. Higher IV = higher
+  premium for the same strike/DTE.</p></details>
+
+<details><summary>OTM / ATM / ITM</summary>
+<p>Out / At / In The Money. For a put: OTM = strike below spot. For a call: OTM = strike
+  above spot. ITM = the opposite.</p></details>
+
+<details><summary>Theta</summary>
+<p>The daily premium decay of an option, all else equal. As an option seller, theta is your
+  friend.</p></details>
+
+<details><summary>Roll</summary>
+<p>A single combined order that closes the current short option and opens a new one,
+  usually for a net credit and a later expiration.</p></details>
+
+<details><summary>Chain ID</summary>
+<p>In your tracker, the identifier that ties all legs (opens + rolls + close/assignment) of
+  one logical wheel position together. e.g. <code>TSLA-001</code>.</p></details>
+
+<details><summary>Block</summary>
+<p>In your tracker, one block = one option contract = 100 shares of underlying obligation.</p></details>
+</section>
+
+<footer>
+  Built for personal use — not financial advice. Mechanics only.<br/>
+  Examples are real trades from <code>Wheel Investment Tracker(1).xlsx</code>.
+</footer>
+
+</div>
+</body>
+</html>

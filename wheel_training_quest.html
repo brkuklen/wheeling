@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Wheel Strategy — Mechanical Training Quest — Training Quest</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#eaecf0;--bg2:#f4f5f7;--blue:#0969da;--green:#1a7f37;--orange:#bf8700;--red:#cf222e;--text:#24292f;--text-muted:#57606a;--border:#c5ccd6;--panel-w:460px;--top-bar:52px}
+  html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#dfe2e6 0%,var(--bg) 100%);color:var(--text)}
+  .top-bar{position:fixed;top:0;left:0;right:0;height:var(--top-bar);background:rgba(234,236,240,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;z-index:100}
+  .top-bar .title{font-size:15px;font-weight:600;white-space:nowrap}.top-bar .title span{color:var(--blue)}
+  .progress-wrap{flex:1;max-width:420px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .progress-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+  .progress-label{font-size:13px;color:var(--text-muted);min-width:90px;text-align:right}
+  .btn-reset{background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;transition:all .2s}.btn-reset:hover{border-color:var(--red);color:var(--red)}
+  .quest-map{position:fixed;top:var(--top-bar);left:0;right:0;bottom:0;overflow:hidden}
+  .quest-map svg.path-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .phase-label{position:absolute;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--text-muted);opacity:.55;pointer-events:none}
+  .phase-label.p1{top:82px;left:1%}.phase-label.p2{top:82px;left:26.0%}.phase-label.p3{top:82px;left:51.0%}.phase-label.p4{top:82px;left:67.7%}
+  .phase-divider{position:absolute;top:var(--top-bar);bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--border) 15%,var(--border) 85%,transparent);opacity:.6;pointer-events:none}
+  .phase-divider.d1{left:25.0%}.phase-divider.d2{left:50.0%}.phase-divider.d3{left:66.7%}
+  .node{position:absolute;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .35s cubic-bezier(.4,0,.2,1);z-index:10;transform:translate(-50%,-50%)}
+  .node .ring{position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--border);transition:all .35s}
+  .node .inner{width:100%;height:100%;border-radius:50%;background:#f0f1f3;display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;z-index:1;transition:all .35s;border:2px solid var(--border)}
+  .node.active .ring{border-color:var(--blue);box-shadow:0 0 20px rgba(88,166,255,.35);animation:pulse-ring 2s infinite}
+  .node.active .inner{border-color:var(--blue);background:rgba(88,166,255,.1);transform:scale(1.12)}.node.active .lock{display:none}
+  .node.complete .ring{border-color:var(--green);box-shadow:0 0 12px rgba(63,185,80,.25)}
+  .node.complete .inner{border-color:var(--green);background:rgba(63,185,80,.15)}.node.complete .lock{display:none}
+  .node:hover{transform:translate(-50%,-50%) scale(1.1)}
+  .node .label{position:absolute;top:calc(100% + 10px);white-space:nowrap;font-size:11px;font-weight:600;color:var(--text-muted);text-align:center;pointer-events:none;transition:color .3s}
+  .node.active .label{color:var(--blue)}.node.complete .label{color:var(--green)}
+  @keyframes pulse-ring{0%,100%{box-shadow:0 0 20px rgba(88,166,255,.25)}50%{box-shadow:0 0 32px rgba(88,166,255,.5)}}
+  .check-icon{display:none}.node.complete .check-icon{display:block}.node.complete .emoji{display:none}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}.overlay.open{opacity:1;pointer-events:auto}
+  .panel{position:fixed;top:0;right:0;bottom:0;width:var(--panel-w);max-width:92vw;background:#f0f1f3;border-left:1px solid var(--border);z-index:210;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.08)}.panel.open{transform:translateX(0)}
+  .panel-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+  .panel-header .emoji-big{font-size:32px;line-height:1}.panel-header .meta{flex:1}.panel-header .meta h2{font-size:18px;font-weight:700;margin-bottom:4px}.panel-header .meta .time{font-size:12px;color:var(--text-muted)}
+  .panel-close{background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;padding:4px;line-height:1}.panel-close:hover{color:var(--text)}
+  .panel-body{flex:1;padding:20px 24px;display:flex;flex-direction:column;gap:16px}.panel-body .desc{font-size:14px;line-height:1.55;color:var(--text)}
+  .copy-block{position:relative;background:#e4e6ea;border:1px solid var(--border);border-radius:8px;padding:12px 44px 12px 14px;font-family:'Cascadia Code','Fira Code',monospace;font-size:12.5px;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word}
+  .copy-btn{position:absolute;top:8px;right:8px;background:#d5d8dd;border:none;color:var(--text-muted);width:30px;height:30px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}.copy-btn:hover{background:var(--blue);color:#fff}.copy-btn.copied{background:var(--green);color:#fff}
+  .toggle-done{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;border:2px solid var(--border);background:transparent;cursor:pointer;font-size:14px;font-weight:600;color:var(--text);transition:all .25s;width:100%}
+  .toggle-done .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .25s;flex-shrink:0}
+  .toggle-done.checked{border-color:var(--green);background:rgba(63,185,80,.08)}.toggle-done.checked .dot{background:var(--green);border-color:var(--green)}
+  .substeps{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}
+  .substeps li{font-size:13px;color:var(--text-muted);padding-left:20px;position:relative;line-height:1.5}
+  .substeps li::before{content:'';position:absolute;left:2px;top:7px;width:8px;height:8px;border-radius:50%;border:2px solid var(--border)}
+  .stuck-toggle{background:none;border:none;color:var(--orange);font-size:13px;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:6px}.stuck-toggle:hover{text-decoration:underline}
+  .stuck-content{max-height:0;overflow:hidden;transition:max-height .3s;font-size:13px;color:var(--text-muted);line-height:1.6}.stuck-content.open{max-height:500px}.stuck-content p{margin-top:8px}
+  .copy-group{display:flex;flex-direction:column;gap:8px}
+  .particle{position:fixed;width:8px;height:8px;border-radius:50%;pointer-events:none;z-index:999}
+  .confetti{position:fixed;width:10px;height:16px;pointer-events:none;z-index:999;border-radius:2px}
+  .rocket-anim{position:fixed;font-size:40px;z-index:999;pointer-events:none}
+  .banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:rgba(240,241,243,.97);border:2px solid var(--green);border-radius:16px;padding:32px 56px;text-align:center;z-index:999;transition:transform .5s cubic-bezier(.175,.885,.32,1.275);box-shadow:0 12px 48px rgba(0,0,0,.15)}.banner.show{transform:translate(-50%,-50%) scale(1)}.banner h1{font-size:28px;margin-bottom:8px}.banner p{color:var(--text-muted);font-size:15px}
+  .panel::-webkit-scrollbar{width:6px}.panel::-webkit-scrollbar-track{background:transparent}.panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  .credit{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--text-muted);opacity:.6;pointer-events:none;letter-spacing:.3px;z-index:5}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="title"><span>The Wheel Strategy — Mechanical Training Quest</span> — Training Quest</div>
+  <div class="progress-wrap"><div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div><div class="progress-label" id="progressLabel">0 of 12</div></div>
+  <button class="btn-reset" onclick="resetProgress()">Reset Progress</button>
+</div>
+<div class="phase-label p1">🚀 Getting Started</div>
+<div class="phase-label p2">📚 Fundamentals</div>
+<div class="phase-label p3">⚡ Hands-On</div>
+<div class="phase-label p4">🏆 Mastery</div>
+<div class="phase-divider d1"></div><div class="phase-divider d2"></div><div class="phase-divider d3"></div>
+<div class="quest-map" id="questMap"><svg class="path-svg" id="pathSvg" preserveAspectRatio="none"></svg></div>
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="panel" id="panel"><div class="panel-header"><div class="emoji-big" id="panelEmoji"></div><div class="meta"><h2 id="panelTitle"></h2><div class="time" id="panelTime"></div></div><button class="panel-close" onclick="closePanel()">✕</button></div><div class="panel-body" id="panelBody"></div></div>
+<div class="banner" id="banner"><h1>🏆 Quest Complete!</h1><p>You've finished the training.</p></div>
+<div class="credit">The Wheel Strategy — Mechanical Training Quest — Training Quest · Generated 2026-05-23 11:25</div>
+<script>
+const CHECKPOINTS = [
+  {
+    "id": "step-1",
+    "phase": 1,
+    "emoji": "\ud83c\udfaf",
+    "title": "Grasp the core idea",
+    "time": "3 min",
+    "desc": "The wheel is a two-stage premium-selling loop on stocks you'd be happy to own. You collect cash for taking obligations. Before any mechanics make sense, you have to internalize this one sentence.",
+    "toggle": "I can explain the wheel in one sentence \u2713",
+    "copies": [
+      {
+        "label": "The wheel in one sentence",
+        "text": "Sell a Cash-Secured Put on a stock you'd buy anyway; if assigned, sell Covered Calls on the shares until they're called away; then repeat."
+      }
+    ],
+    "substeps": [
+      "Read the one-sentence definition out loud",
+      "Identify the two option types involved",
+      "Notice that it's a LOOP, not a one-shot trade",
+      "Write your own version of the definition in your notes"
+    ],
+    "learn": "What the wheel is, why it's cyclical, what 'selling premium' means",
+    "stuck": "If 'selling an option' is confusing: when you SELL a put, you receive cash now in exchange for the OBLIGATION to buy 100 shares at the strike if the buyer exercises. You are the insurance company, not the customer."
+  },
+  {
+    "id": "step-2",
+    "phase": 1,
+    "emoji": "\ud83d\udd01",
+    "title": "Memorize the cycle diagram",
+    "time": "4 min",
+    "desc": "Every wheel position lives somewhere on this loop: CSP \u2192 (expire | roll | assign) \u2192 if assigned, CC \u2192 (expire | roll | call away) \u2192 back to CSP. If you can't draw this from memory, the rest won't stick.",
+    "toggle": "I can draw the cycle from memory \u2713",
+    "copies": [
+      {
+        "label": "The 6 states",
+        "text": "1) Sell CSP  2) CSP expires (keep premium)  3) CSP rolled  4) CSP assigned \u2192 own shares  5) Sell CC  6) CC called away \u2192 back to step 1"
+      }
+    ],
+    "substeps": [
+      "Open wheel_guide.html and study the 'Wheel Cycle' diagrams",
+      "Close the page and draw the cycle on paper from memory",
+      "Mark which transitions cost you money vs. earn money",
+      "Verify your drawing against the guide"
+    ],
+    "learn": "The full state machine of a wheel position; where premium income comes in",
+    "stuck": "The diagram has two halves: the CSP half (cash \u2192 maybe shares) and the CC half (shares \u2192 maybe cash). Both halves have the same three outcomes: expire, roll, or get exercised."
+  },
+  {
+    "id": "step-3",
+    "phase": 1,
+    "emoji": "\ud83d\udcbc",
+    "title": "Learn the two instruments",
+    "time": "5 min",
+    "desc": "A CSP and a CC are mirror images. CSP = short put backed by cash. CC = short call backed by 100 shares you own. Both pay you premium upfront in exchange for an obligation.",
+    "toggle": "I can define CSP and CC correctly \u2713",
+    "copies": [
+      {
+        "label": "CSP definition",
+        "text": "Cash-Secured Put: I sell a put and set aside strike \u00d7 100 in cash. If the stock closes below the strike, I'm obligated to buy 100 shares at the strike."
+      },
+      {
+        "label": "CC definition",
+        "text": "Covered Call: I own 100 shares and sell a call against them. If the stock closes above the strike, my shares are sold at the strike."
+      }
+    ],
+    "substeps": [
+      "State out loud: 'A CSP obligates me to BUY at the strike if assigned'",
+      "State out loud: 'A CC obligates me to SELL at the strike if called away'",
+      "Identify what 'secured' means for each (cash vs shares)",
+      "Note: 1 contract = 100 shares = 1 block in the tracker"
+    ],
+    "learn": "Definitions of CSP and CC, what 'secured' and 'covered' mean, the 100-share unit",
+    "stuck": "Why 100? Because 1 option contract represents 100 shares of the underlying. That's why premium quoted as '$3.25' actually means $325 of cash ($3.25 \u00d7 100)."
+  },
+  {
+    "id": "step-4",
+    "phase": 2,
+    "emoji": "\ud83d\udce5",
+    "title": "Dissect a real CSP trade",
+    "time": "6 min",
+    "desc": "Walk through TSLA-002 from the live tracker: spot $321.20, sold a $312.50 put for $3.25 premium, 1 contract. Compute every number yourself before reading the answer.",
+    "toggle": "I matched all four numbers exactly \u2713",
+    "copies": [
+      {
+        "label": "TSLA-002 numbers",
+        "text": "spot=$321.20, strike=$312.50, premium=$3.25, blocks=1, collateral=$31,250, total_premium=$325, ROI=1.04%, OTM=2.7%"
+      }
+    ],
+    "substeps": [
+      "Compute cash collateral required: strike \u00d7 100 \u00d7 blocks",
+      "Compute total premium received: premium \u00d7 100 \u00d7 blocks",
+      "Compute ROI on collateral: premium \u00f7 collateral",
+      "Compute how far OTM the strike is: (spot - strike) \u00f7 spot"
+    ],
+    "learn": "How to convert a quoted option price into actual dollars; ROI calculation; OTM %",
+    "stuck": "If your ROI is way off: collateral is strike \u00d7 100 (not spot \u00d7 100). Premium is quoted PER SHARE, so multiply by 100 to get the dollar amount. ROI here is total_prem / collateral, not / spot."
+  },
+  {
+    "id": "step-5",
+    "phase": 2,
+    "emoji": "\ud83c\udf9a\ufe0f",
+    "title": "Master strike selection",
+    "time": "5 min",
+    "desc": "The strike you choose is the most important decision in a CSP. It controls premium, probability of assignment, and the price you'd pay if assigned. Learn the three knobs.",
+    "toggle": "I can pick a strike using all three knobs \u2713",
+    "copies": [
+      {
+        "label": "The golden rule",
+        "text": "Never sell a CSP at a strike you wouldn't genuinely be happy to own the stock at. Assignment must be a backup plan, not a disaster."
+      }
+    ],
+    "substeps": [
+      "Knob 1: delta \u2014 pick ~0.05-0.20 for conservative income trades",
+      "Knob 2: % OTM \u2014 typically 1-5% below spot for weekly trades",
+      "Knob 3: DTE \u2014 shorter = more theta decay but more touches",
+      "Apply the golden rule: only sell at a strike you'd be happy buying at"
+    ],
+    "learn": "Delta as probability proxy, the three strike-selection knobs, the golden rule",
+    "stuck": "Higher premium ALWAYS means higher risk. If a strike looks like 'free money', it's because the market thinks assignment is likely. Reality-check every juicy premium against the chart."
+  },
+  {
+    "id": "step-6",
+    "phase": 2,
+    "emoji": "\ud83c\udfb2",
+    "title": "Know the three outcomes cold",
+    "time": "4 min",
+    "desc": "Every short put resolves into exactly one of three states by expiration: expired worthless, rolled, or assigned. Each requires a different next action.",
+    "toggle": "I can name the next action for each outcome \u2713",
+    "copies": [
+      {
+        "label": "Tracker examples",
+        "text": "EXPIRED: NVDA-001 ($172.50 put, kept $61). ASSIGNED: AMD-001 ($172.50 put, took shares). ROLLED\u2192ASSIGNED: TSLA-001 (rolled once then assigned)."
+      }
+    ],
+    "substeps": [
+      "EXPIRED: stock stayed above strike \u2192 keep 100% premium, capital freed",
+      "ROLLED: stock approaching/below strike \u2192 close + reopen further out for net credit",
+      "ASSIGNED: stock below strike \u2192 buy 100 shares at strike, move to CC phase",
+      "For each outcome, identify the next trade you'd place"
+    ],
+    "learn": "The three terminal states of a short put; the action that follows each",
+    "stuck": "Assignment isn't a failure \u2014 it's a planned outcome. The wheel is designed to handle it. The only outcome you actively avoid is rolling for a debit (paying to extend) \u2014 that means you're throwing good money after bad."
+  },
+  {
+    "id": "step-7",
+    "phase": 3,
+    "emoji": "\ud83d\udd04",
+    "title": "Execute a roll on paper",
+    "time": "7 min",
+    "desc": "A roll is one combined order: buy-to-close the existing short option, sell-to-open a new one (later expiry, often different strike), for a net credit. Walk through TSLA-001 leg by leg.",
+    "toggle": "I traced the TSLA-001 chain end-to-end \u2713",
+    "copies": [
+      {
+        "label": "Roll rule of thumb",
+        "text": "Only roll for a NET CREDIT (typically > $0.10/share). If the roll would cost you money, just take assignment \u2014 paying to delay assignment is a losing pattern."
+      },
+      {
+        "label": "TSLA-001 P&L formula",
+        "text": "chain_premium = $400 (open) + $70 (roll) = $470; effective_basis = $310 - $4.70 = $305.30/share"
+      }
+    ],
+    "substeps": [
+      "Leg 1: opened TSLA $310 put for $4.00 = $400 credit",
+      "Leg 2: rolled \u2014 net credit of $0.70 = additional $70",
+      "Eventually assigned at $310 strike",
+      "Compute total premium across the chain: $400 + $70 = $470",
+      "Compute effective cost basis if assigned: $310 - $4.70 = $305.30/share"
+    ],
+    "learn": "What a roll is mechanically, when to roll vs accept assignment, how rolls lower cost basis",
+    "stuck": "If the math feels weird: a roll is just TWO trades placed simultaneously \u2014 closing the old position (debit) and opening a new one (credit). The 'net' is credit minus debit. Your broker will quote it as one number."
+  },
+  {
+    "id": "step-8",
+    "phase": 3,
+    "emoji": "\ud83d\udce6",
+    "title": "Handle assignment correctly",
+    "time": "5 min",
+    "desc": "When assigned, your cash becomes 100 shares per contract at the strike. Your effective cost basis is strike minus all premium collected. Now you own the stock \u2014 that's not failure, it's the pivot point.",
+    "toggle": "I can compute effective cost basis for any assignment \u2713",
+    "copies": [
+      {
+        "label": "Cost basis formula",
+        "text": "effective_cost_basis = strike - (total_premium_collected_across_chain / 100)"
+      },
+      {
+        "label": "Post-assignment rule",
+        "text": "Always sell CCs at strikes ABOVE your cost basis. Selling below basis means a guaranteed realized loss if called away."
+      }
+    ],
+    "substeps": [
+      "Compute effective basis for AMD-001: $172.50 - $1.12 = $171.38/share",
+      "Recognize: on day 1 of assignment, you're likely sitting on an unrealized loss",
+      "Accept the reality: stock has moved THROUGH your strike",
+      "Plan the CC: pick a strike ABOVE basis so an eventual call-away locks in profit"
+    ],
+    "learn": "Cost basis math, why assignment shows a day-1 loss, the rule for picking CC strikes",
+    "stuck": "Feeling underwater? Every dollar of premium you collect from now on lowers your basis. The wheel turns paper losses into realized income over time \u2014 as long as you don't panic-sell."
+  },
+  {
+    "id": "step-9",
+    "phase": 4,
+    "emoji": "\ud83d\udce4",
+    "title": "Sell a covered call",
+    "time": "6 min",
+    "desc": "Now you own shares. Sell a call against them to keep generating premium. Walk through META-001: $773.30 spot, sold $795 call for $9.85, kept all $985 when META stayed below $795.",
+    "toggle": "I can run a CC trade end-to-end \u2713",
+    "copies": [
+      {
+        "label": "META-001 trade",
+        "text": "spot=$773.30, sold $795 call for $9.85, 1 contract = $985 premium, 1.27% weekly ROI, expired worthless = kept everything"
+      },
+      {
+        "label": "CC outcomes",
+        "text": "EXPIRED: keep premium, sell another. ROLLED: roll up & out for credit. CALLED AWAY: shares sold at strike \u2192 back to CSP phase."
+      }
+    ],
+    "substeps": [
+      "Verify the call strike is ABOVE your cost basis (golden rule)",
+      "Compute total premium: $9.85 \u00d7 100 = $985",
+      "Compute ROI vs stock value: $985 / $77,330 = 1.27%",
+      "Identify the three CC outcomes (mirror the CSP outcomes)"
+    ],
+    "learn": "CC mechanics, why CC strikes must be above basis, the symmetry with CSP outcomes",
+    "stuck": "If a CC gets blown through on a rally, don't panic \u2014 you still make money (shares \u00d7 (strike - basis) + premium). You just miss further upside. That's the price of recurring income."
+  },
+  {
+    "id": "step-10",
+    "phase": 4,
+    "emoji": "\ud83e\uddee",
+    "title": "Run the interactive calculator",
+    "time": "5 min",
+    "desc": "Open wheel_guide.html and use the live calculator. Plug in three different scenarios to see how strike, premium, and DTE move the ROI and annualized return.",
+    "toggle": "I ran all three scenarios in the calculator \u2713",
+    "copies": [
+      {
+        "label": "Annualized formula",
+        "text": "annualized = (1 + period_ROI) ^ (365 / DTE) - 1"
+      },
+      {
+        "label": "Compounding insight",
+        "text": "1% weekly compounds to ~67% annually \u2014 but only if you redeploy capital every week and avoid catastrophic assignments."
+      }
+    ],
+    "substeps": [
+      "Scenario A: $180 spot, $175 strike, $1.50 prem, 7 DTE \u2192 note ROI and annualized",
+      "Scenario B: same but 30 DTE \u2192 notice annualized DROPS (slower turnover)",
+      "Scenario C: bump premium to $3.00 \u2192 notice ROI doubles",
+      "Verify the cost-basis line matches strike - premium"
+    ],
+    "learn": "How DTE affects annualized return, how strike/premium interact, the compounding math",
+    "stuck": "Calculator missing? The interactive section is near the bottom of wheel_guide.html under 'Interactive Calculator'. If inputs don't update, hard-refresh (Ctrl+F5)."
+  },
+  {
+    "id": "step-11",
+    "phase": 4,
+    "emoji": "\u26a0\ufe0f",
+    "title": "Internalize the risks",
+    "time": "5 min",
+    "desc": "The wheel has a high win rate (your tracker shows 87%) but the losses, when they come, are large. Understand the four ways it goes wrong BEFORE you sell your next put.",
+    "toggle": "I can name and defend against all four risks \u2713",
+    "copies": [
+      {
+        "label": "Position sizing rule",
+        "text": "Never let one chain be more than ~5-10% of your wheel capital. One bad assignment on a concentrated position can wipe out a year of premium."
+      },
+      {
+        "label": "Earnings rule",
+        "text": "If you sell premium across an earnings date, you are taking an undefined-risk binary bet. Size accordingly or avoid."
+      }
+    ],
+    "substeps": [
+      "Risk 1: Gap-down \u2014 earnings or news \u2192 20%+ overnight drop, deep ITM put",
+      "Risk 2: Bag holder \u2014 stock keeps falling post-assignment, CC strikes pay nothing",
+      "Risk 3: Capped upside \u2014 sell CC, stock rips 30%, miss the rally",
+      "Risk 4: Tax drag \u2014 short-term gains taxed as ordinary income"
+    ],
+    "learn": "The four failure modes; position sizing as primary defense; earnings-week caution",
+    "stuck": "If the math looks too good: a 1% weekly = 67% annualized math is REAL but only without big losses. One -20% assignment wipes out ~20 winning weeks. The math survives only with strict sizing and stock selection."
+  },
+  {
+    "id": "step-12",
+    "phase": 4,
+    "emoji": "\ud83d\udcd6",
+    "title": "Quiz yourself on the glossary",
+    "time": "4 min",
+    "desc": "Final check. Without scrolling back, define each of these from memory: CSP, CC, PCS, strike, premium, DTE, delta, IV, OTM, theta, roll, chain ID, block. Then verify against the guide.",
+    "toggle": "I can define all 13 terms from memory \u2713",
+    "copies": [
+      {
+        "label": "The 13 terms",
+        "text": "CSP, CC, PCS, strike, premium, DTE, delta, IV, OTM/ATM/ITM, theta, roll, chain ID, block"
+      }
+    ],
+    "substeps": [
+      "Write a one-line definition for each of the 13 terms",
+      "Open the Glossary section of wheel_guide.html and grade yourself",
+      "Note any term you got wrong \u2014 re-read its section",
+      "Re-quiz the missed terms tomorrow"
+    ],
+    "learn": "Fluency in the working vocabulary needed to discuss any wheel trade",
+    "stuck": "Hardest ones for most people: delta (sensitivity AND rough P(ITM)), theta (daily decay, your friend as seller), IV (market's expected volatility, drives premium). Re-read those three first."
+  }
+];
+const POSITIONS = [
+  {
+    "x": 5.2,
+    "y": 16.0
+  },
+  {
+    "x": 19.9,
+    "y": 49.0
+  },
+  {
+    "x": 5.2,
+    "y": 82.0
+  },
+  {
+    "x": 30.1,
+    "y": 16.0
+  },
+  {
+    "x": 44.9,
+    "y": 49.0
+  },
+  {
+    "x": 30.1,
+    "y": 82.0
+  },
+  {
+    "x": 53.9,
+    "y": 16.0
+  },
+  {
+    "x": 62.8,
+    "y": 82.0
+  },
+  {
+    "x": 73.1,
+    "y": 16.0
+  },
+  {
+    "x": 93.6,
+    "y": 38.0
+  },
+  {
+    "x": 73.1,
+    "y": 60.0
+  },
+  {
+    "x": 93.6,
+    "y": 82.0
+  }
+];
+const STORAGE_KEY = 'quest-' + btoa(unescape(encodeURIComponent('The Wheel Strategy — Mechanical Training Quest'))).slice(0,12);
+let state = loadState();
+function loadState(){try{const s=localStorage.getItem(STORAGE_KEY);if(s)return JSON.parse(s)}catch(e){}return{completed:{}}}
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function isComplete(id){return !!state.completed[id]}
+function completedCount(){return CHECKPOINTS.filter(c=>isComplete(c.id)).length}
+function render(){renderPath();renderNodes();updateProgress()}
+function updateProgress(){const n=completedCount(),t=CHECKPOINTS.length,p=Math.round(n/t*100);document.getElementById('progressFill').style.width=p+'%';document.getElementById('progressLabel').textContent=n+' of '+t}
+function getActiveIndex(){for(let i=0;i<CHECKPOINTS.length;i++){if(!isComplete(CHECKPOINTS[i].id))return i}return CHECKPOINTS.length}
+function renderPath(){const svg=document.getElementById('pathSvg'),w=window.innerWidth,h=window.innerHeight-52;svg.setAttribute('viewBox','0 0 '+w+' '+h);let html='';const pts=POSITIONS.map(p=>({x:p.x/100*w,y:p.y/100*h}));const ai=getActiveIndex();for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],cx1=a.x+(b.x-a.x)*.6,cy1=a.y,cx2=a.x+(b.x-a.x)*.4,cy2=b.y;const d='M'+a.x+','+a.y+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+b.x+','+b.y;const done=isComplete(CHECKPOINTS[i].id)&&isComplete(CHECKPOINTS[i+1].id);const partial=isComplete(CHECKPOINTS[i].id)&&!isComplete(CHECKPOINTS[i+1].id);const active=i===ai-1||i===ai;if(done)html+='<path d="'+d+'" fill="none" stroke="var(--green)" stroke-width="3" stroke-opacity=".5"/>';else if(partial||active)html+='<path d="'+d+'" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-opacity=".4" stroke-dasharray="8 6"><animate attributeName="stroke-dashoffset" from="28" to="0" dur="1.5s" repeatCount="indefinite"/></path>';else html+='<path d="'+d+'" fill="none" stroke="var(--border)" stroke-width="2" stroke-dasharray="6 8" stroke-opacity=".5"/>'}svg.innerHTML=html}
+function renderNodes(){document.querySelectorAll('.node').forEach(n=>n.remove());const map=document.getElementById('questMap'),ai=getActiveIndex();CHECKPOINTS.forEach((cp,i)=>{const pos=POSITIONS[i];if(!pos)return;const node=document.createElement('div');node.className='node';if(isComplete(cp.id))node.classList.add('complete');else if(i===ai)node.classList.add('active');node.style.left=pos.x+'%';node.style.top='calc('+pos.y+'% + 0px)';const isLocked=i>ai&&!isComplete(cp.id);node.innerHTML='<div class="ring"></div><div class="inner"><span class="emoji">'+(isLocked?'🔒':cp.emoji)+'</span><svg class="check-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="4 12 10 18 20 6"/></svg>'+(isLocked?'<span class="lock"></span>':'')+'</div><div class="label">'+cp.title+'</div>';node.addEventListener('click',()=>openPanel(i));map.appendChild(node)})}
+let currentPanel=-1;
+function openPanel(idx){currentPanel=idx;const cp=CHECKPOINTS[idx];document.getElementById('panelEmoji').textContent=cp.emoji;document.getElementById('panelTitle').textContent=cp.title;document.getElementById('panelTime').textContent=cp.time?'⏱ '+cp.time:'';let html='<div class="desc">'+cp.desc+'</div>';if(cp.substeps){html+='<ol class="substeps">';cp.substeps.forEach(s=>html+='<li>'+s+'</li>');html+='</ol>'}if(cp.copies){html+='<div class="copy-group">';cp.copies.forEach(c=>{html+='<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">'+c.label+'</div><div class="copy-block"><span class="copy-text">'+escHtml(c.text)+'</span><button class="copy-btn" onclick="copyText(this,\''+escAttr(c.text)+'\')" title="Copy">📋</button></div></div>'});html+='</div>'}if(cp.learn){html+='<div style="font-size:13px;color:var(--text-muted)">📚 <b>What you learn:</b> '+cp.learn+'</div>'}const checked=isComplete(cp.id);html+='<button class="toggle-done '+(checked?'checked':'')+'" onclick="toggleDone(\''+cp.id+'\',this)"><span class="dot">'+(checked?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="4 12 10 18 20 6"/></svg>':'')+'</span><span>'+(cp.toggle||'Done ✓')+'</span></button>';if(cp.stuck){html+='<div><button class="stuck-toggle" onclick="this.nextElementSibling.classList.toggle(\'open\')">🆘 I\'m stuck</button><div class="stuck-content"><p>'+cp.stuck+'</p></div></div>'}document.getElementById('panelBody').innerHTML=html;document.getElementById('overlay').classList.add('open');document.getElementById('panel').classList.add('open')}
+function closePanel(){document.getElementById('overlay').classList.remove('open');document.getElementById('panel').classList.remove('open');currentPanel=-1}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escAttr(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+function copyText(btn,text){navigator.clipboard.writeText(text).then(()=>{btn.classList.add('copied');btn.textContent='✓';setTimeout(()=>{btn.classList.remove('copied');btn.textContent='📋'},1500)}).catch(()=>{const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;left:-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);btn.classList.add('copied');btn.textContent='✓';setTimeout(()=>{btn.classList.remove('copied');btn.textContent='📋'},1500)})}
+function toggleDone(id,btn){if(isComplete(id)){delete state.completed[id];btn.classList.remove('checked');btn.querySelector('.dot').innerHTML=''}else{state.completed[id]=true;btn.classList.add('checked');btn.querySelector('.dot').innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="4 12 10 18 20 6"/></svg>';celebrate(id)}saveState();render()}
+function celebrate(id){const idx=CHECKPOINTS.findIndex(c=>c.id===id),pos=POSITIONS[idx];if(!pos)return;const x=pos.x/100*window.innerWidth,y=pos.y/100*(window.innerHeight-52)+52;spawnParticles(x,y,12);const maxP=Math.max(...CHECKPOINTS.map(c=>c.phase));for(let p=1;p<=maxP;p++){const phase=CHECKPOINTS.filter(c=>c.phase===p);if(phase.every(c=>isComplete(c.id))&&id===phase[phase.length-1].id)setTimeout(()=>rocketAnimation(),400)}if(completedCount()===CHECKPOINTS.length)setTimeout(()=>{confettiExplosion();showBanner()},600)}
+function spawnParticles(cx,cy,count){const colors=['#58a6ff','#3fb950','#d29922','#f778ba','#bc8cff'];for(let i=0;i<count;i++){const el=document.createElement('div');el.className='particle';el.style.left=cx+'px';el.style.top=cy+'px';el.style.background=colors[i%colors.length];document.body.appendChild(el);const angle=Math.random()*Math.PI*2,dist=40+Math.random()*60,dx=Math.cos(angle)*dist,dy=Math.sin(angle)*dist;el.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:'translate('+dx+'px,'+dy+'px) scale(0)',opacity:0}],{duration:600+Math.random()*400,easing:'cubic-bezier(.4,0,.2,1)'}).onfinish=()=>el.remove()}}
+function rocketAnimation(){const el=document.createElement('div');el.className='rocket-anim';el.textContent='🚀';el.style.left='-50px';el.style.bottom='60%';document.body.appendChild(el);el.animate([{transform:'translate(0,0) rotate(-30deg)',opacity:1},{transform:'translate('+(window.innerWidth+100)+'px,-'+(window.innerHeight/2)+'px) rotate(-30deg)',opacity:.8}],{duration:1400,easing:'cubic-bezier(.25,.1,.25,1)'}).onfinish=()=>el.remove()}
+function confettiExplosion(){const colors=['#58a6ff','#3fb950','#d29922','#f778ba','#bc8cff','#f85149','#fff'];for(let i=0;i<60;i++){const el=document.createElement('div');el.className='confetti';el.style.background=colors[i%colors.length];el.style.left=Math.random()*window.innerWidth+'px';el.style.top='-20px';el.style.width=(6+Math.random()*8)+'px';el.style.height=(10+Math.random()*12)+'px';el.style.borderRadius=Math.random()>.5?'50%':'2px';document.body.appendChild(el);const x=(Math.random()-.5)*200,spin=Math.random()*720-360;el.animate([{transform:'translate(0,0) rotate(0deg)',opacity:1},{transform:'translate('+x+'px,'+(window.innerHeight+40)+'px) rotate('+spin+'deg)',opacity:.6}],{duration:2000+Math.random()*1500,easing:'cubic-bezier(.25,.1,.25,1)',delay:Math.random()*300}).onfinish=()=>el.remove()}}
+function showBanner(){const b=document.getElementById('banner');b.classList.add('show');setTimeout(()=>b.classList.remove('show'),4000)}
+function resetProgress(){if(!confirm('Reset all progress? This cannot be undone.'))return;state={completed:{}};saveState();closePanel();render()}
+render();window.addEventListener('resize',()=>render());
+</script>
+</body>
+</html>
