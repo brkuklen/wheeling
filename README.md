@@ -3,7 +3,7 @@
 A short, free reference for the **Wheel** options-income strategy (cash-secured puts +
 covered calls). Two self-contained HTML pages, no dependencies, no tracking.
 
-**Live site:** _will be filled in after first GitHub Pages build_
+**Live site:** <https://brkuklen.github.io/wheeling/>
 
 ## Contents
 
